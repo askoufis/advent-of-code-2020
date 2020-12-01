@@ -37,9 +37,9 @@ fn part1_alt2(entries: &[usize]) -> usize {
     let mut result: usize = 0;
 
     for combination in entries.into_iter().combinations(2) {
-        let sum: usize = combination.into_iter().sum();
+        let sum: usize = combination.clone().into_iter().sum();
         if sum == 2020 {
-            result = sum;
+            result = combination.into_iter().fold(1, |acc, val| acc * val);
             break;
         }
     }
@@ -47,19 +47,33 @@ fn part1_alt2(entries: &[usize]) -> usize {
     result
 }
 
-#[aoc(day1, part2)]
-fn part2(entries: &[usize]) -> usize {
+#[aoc(day1, part2, alt1)]
+fn part2_alt1(entries: &[usize]) -> usize {
     let mut result: usize = 0;
 
     for combination in entries.into_iter().combinations(3) {
-        let sum: usize = combination.into_iter().sum();
+        let sum: usize = combination.clone().into_iter().sum();
         if sum == 2020 {
-            result = sum;
+            result = combination.into_iter().fold(1, |acc, val| acc * val);
             break;
         }
     }
 
     result
+}
+
+#[aoc(day1, part2, alt2)]
+fn part2_alt2(entries: &[usize]) -> usize {
+    entries
+        .into_iter()
+        .combinations(3)
+        .find(|combination| {
+            let sum: usize = combination.clone().into_iter().sum();
+            sum == 2020
+        })
+        .unwrap()
+        .into_iter()
+        .fold(1, |acc, val| acc * val)
 }
 
 #[cfg(test)]
@@ -67,26 +81,22 @@ mod tests {
     use super::*;
 
     #[test]
-    fn part1_alt1_test() {
+    fn part1_test() {
         let input = [1721, 979, 366, 299, 675, 1456];
-        let result = part1_alt1(&input);
+        let result1 = part1_alt1(&input);
+        let result2 = part1_alt2(&input);
         let expected = 514579;
-        assert_eq!(result, expected);
-    }
-
-    #[test]
-    fn part1_alt2_test() {
-        let input = [1721, 979, 366, 299, 675, 1456];
-        let result = part1_alt2(&input);
-        let expected = 514579;
-        assert_eq!(result, expected);
+        assert_eq!(result1, expected);
+        assert_eq!(result2, expected);
     }
 
     #[test]
     fn part2_test() {
         let input = [1721, 979, 366, 299, 675, 1456];
-        let result = part2(&input);
+        let result1 = part2_alt1(&input);
+        let result2 = part2_alt2(&input);
         let expected = 241861950;
-        assert_eq!(result, expected);
+        assert_eq!(result1, expected);
+        assert_eq!(result2, expected);
     }
 }
