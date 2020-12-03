@@ -1,3 +1,4 @@
+#[derive(Debug)]
 struct Position {
     x: usize,
     y: usize,
@@ -11,12 +12,12 @@ fn input_generator(input: &str) -> Vec<Vec<char>> {
         .collect()
 }
 
-fn tree_map_solver(tree_map: &[Vec<char>], right_step: &usize, down_step: &usize) -> usize {
+fn tree_map_solver_alt1(tree_map: &[Vec<char>], right_step: usize, down_step: usize) -> usize {
     let width = tree_map[0].len();
     let height = tree_map.len();
     let mut pos = Position {
-        x: *right_step,
-        y: *down_step,
+        x: right_step,
+        y: down_step,
     };
 
     let mut tree_count = 0;
@@ -39,18 +40,51 @@ fn tree_map_solver(tree_map: &[Vec<char>], right_step: &usize, down_step: &usize
     tree_count
 }
 
-#[aoc(day3, part1)]
-fn part1(tree_map: &[Vec<char>]) -> usize {
-    tree_map_solver(tree_map, &3, &1)
+#[aoc(day3, part1, alt1)]
+fn part1_alt1(tree_map: &[Vec<char>]) -> usize {
+    tree_map_solver_alt1(tree_map, 3, 1)
 }
 
-#[aoc(day3, part2)]
-fn part2(tree_map: &[Vec<char>]) -> usize {
+#[aoc(day3, part2, alt1)]
+fn part2_alt1(tree_map: &[Vec<char>]) -> usize {
     let solves = [(1, 1), (3, 1), (5, 1), (7, 1), (1, 2)];
 
     solves
         .iter()
-        .map(|(right_step, down_step)| tree_map_solver(tree_map, right_step, down_step))
+        .map(|(right_step, down_step)| tree_map_solver_alt1(tree_map, *right_step, *down_step))
+        .product()
+}
+
+fn tree_map_solver_alt2(tree_map: &[Vec<char>], right_step: usize, down_step: usize) -> usize {
+    let width = tree_map[0].len();
+    let height = tree_map.len();
+
+    [down_step]
+        .iter()
+        .cycle()
+        .enumerate()
+        .map(|(index, down_step)| Position {
+            x: (index * right_step + right_step) % width,
+            y: (index * down_step) + down_step,
+        })
+        .take_while(|position| position.y < height)
+        .map(|position| tree_map[position.y][position.x])
+        .filter(|character| *character == '#')
+        .count()
+}
+
+#[aoc(day3, part1, alt2)]
+fn part1_alt2(tree_map: &[Vec<char>]) -> usize {
+    tree_map_solver_alt2(tree_map, 3, 1)
+}
+
+#[aoc(day3, part2, alt2)]
+fn part2_alt2(tree_map: &[Vec<char>]) -> usize {
+    let solves = [(1, 1), (3, 1), (5, 1), (7, 1), (1, 2)];
+
+    solves
+        .iter()
+        .map(|(right_step, down_step)| tree_map_solver_alt2(tree_map, *right_step, *down_step))
         .product()
 }
 
@@ -73,10 +107,12 @@ mod tests {
             .#..#...#.#";
         let generated_input = input_generator(input);
 
-        let result = part1(&generated_input);
+        let result1 = part1_alt1(&generated_input);
+        let result2 = part1_alt2(&generated_input);
         let expected = 7;
 
-        assert_eq!(result, expected);
+        assert_eq!(result1, expected);
+        assert_eq!(result2, expected);
     }
 
     #[test]
@@ -94,9 +130,11 @@ mod tests {
             .#..#...#.#";
         let generated_input = input_generator(input);
 
-        let result = part2(&generated_input);
+        let result1 = part2_alt1(&generated_input);
+        let result2 = part2_alt2(&generated_input);
         let expected = 336;
 
-        assert_eq!(result, expected);
+        assert_eq!(result1, expected);
+        assert_eq!(result2, expected);
     }
 }
