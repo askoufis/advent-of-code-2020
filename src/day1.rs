@@ -39,7 +39,7 @@ fn part1_alt2(entries: &[usize]) -> usize {
     for combination in entries.into_iter().combinations(2) {
         let sum: usize = combination.clone().into_iter().sum();
         if sum == 2020 {
-            result = combination.into_iter().fold(1, |acc, val| acc * val);
+            result = combination.into_iter().product();
             break;
         }
     }
@@ -54,7 +54,7 @@ fn part2_alt1(entries: &[usize]) -> usize {
     for combination in entries.into_iter().combinations(3) {
         let sum: usize = combination.clone().into_iter().sum();
         if sum == 2020 {
-            result = combination.into_iter().fold(1, |acc, val| acc * val);
+            result = combination.into_iter().product();
             break;
         }
     }

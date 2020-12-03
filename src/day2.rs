@@ -29,23 +29,27 @@ fn input_generator(input: &str) -> Vec<Password> {
         .collect()
 }
 
-#[aoc(day2, part1)]
-fn part1(entries: &[Password]) -> usize {
-    let valid_entries = entries
+#[aoc(day2, part1, alt1)]
+fn part1_alt1(entries: &[Password]) -> usize {
+    entries
         .iter()
         .filter(|entry| {
-            let character_count = entry
-                .password
-                .chars()
-                .filter(|character| character == &entry.required_character)
-                .collect::<Vec<char>>()
-                .len();
-
+            let character_count = entry.password.matches(entry.required_character).count();
             character_count >= entry.lower_bound && character_count <= entry.upper_bound
         })
-        .collect::<Vec<&Password>>();
+        .collect::<Vec<&Password>>()
+        .len()
+}
 
-    valid_entries.len()
+#[aoc(day2, part1, alt2)]
+fn part1_alt2(entries: &[Password]) -> usize {
+    entries
+        .iter()
+        .filter(|entry| {
+            let character_count = entry.password.matches(entry.required_character).count();
+            character_count >= entry.lower_bound && character_count <= entry.upper_bound
+        })
+        .count()
 }
 
 #[aoc(day2, part2)]
@@ -92,10 +96,12 @@ mod tests {
                 password: String::from("ccccccccc"),
             },
         ];
-        let valid_passwords = part1(&input);
+        let valid_passwords1 = part1_alt1(&input);
+        let valid_passwords2 = part1_alt2(&input);
         let expected = 2;
 
-        assert_eq!(valid_passwords, expected);
+        assert_eq!(valid_passwords1, expected);
+        assert_eq!(valid_passwords2, expected);
     }
 
     #[test]
