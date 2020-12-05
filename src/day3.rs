@@ -8,7 +8,7 @@ struct Position {
 fn input_generator(input: &str) -> Vec<Vec<char>> {
     input
         .lines()
-        .map(|l| l.trim().chars().take(31).collect::<Vec<char>>())
+        .map(|l| l.trim().chars().collect::<Vec<char>>())
         .collect()
 }
 
@@ -64,8 +64,8 @@ fn tree_map_solver_alt2(tree_map: &[Vec<char>], right_step: usize, down_step: us
         .cycle()
         .enumerate()
         .map(|(index, down_step)| Position {
-            x: (index * right_step + right_step) % width,
-            y: (index * down_step) + down_step,
+            x: ((index + 1) * right_step) % width,
+            y: (index + 1) * down_step,
         })
         .take_while(|position| position.y < height)
         .map(|position| tree_map[position.y][position.x])
