@@ -50,6 +50,26 @@ fn part1(seats: &[Seat]) -> usize {
     seats.iter().map(|seat| get_seat_id(seat)).max().unwrap()
 }
 
+#[aoc(day5, part2)]
+fn part2(seats: &[Seat]) -> usize {
+    let mut seat_ids: Vec<usize> = seats.iter().map(|seat| get_seat_id(seat)).collect();
+    seat_ids.sort();
+
+    let num_ids = seat_ids.len();
+
+    for index in 0..num_ids {
+        if index > 0 && index < num_ids - 1 {
+            let first = seat_ids[index];
+            let second = seat_ids[index + 1];
+            if second - first > 1 {
+                return second - 1;
+            }
+        }
+    }
+
+    0
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
