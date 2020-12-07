@@ -28,16 +28,10 @@ fn part1(answers: &[(HashMap<char, usize>, usize)]) -> usize {
 
 #[aoc(day6, part2)]
 fn part2(answers: &[(HashMap<char, usize>, usize)]) -> usize {
-    let mut all_answer_count = 0;
-    answers.iter().for_each(|(answer, count)| {
-        answer.keys().for_each(|key| {
-            let value = answer.get(key).unwrap();
-            if value == count {
-                all_answer_count += 1;
-            }
-        });
-    });
-    all_answer_count
+    answers
+        .iter()
+        .map(|(answer, count)| answer.values().filter(|value| value == &count).count())
+        .sum()
 }
 
 #[cfg(test)]
