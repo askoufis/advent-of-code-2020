@@ -21,13 +21,7 @@ struct BagEdge {
 #[derive(Debug, PartialEq)]
 struct BagRule {
     bag_name: String,
-    contains: Vec<ContainsRule>,
-}
-
-#[derive(Debug, PartialEq)]
-struct ContainsRule {
-    bag_name: String,
-    count: usize,
+    contains: Vec<BagEdge>,
 }
 
 impl BagRule {
@@ -39,7 +33,7 @@ impl BagRule {
             .strip_suffix(" bags")
             .unwrap();
         let contains_rules = bag_rule_split.next().unwrap().strip_suffix('.').unwrap();
-        let contains: Vec<ContainsRule> = if contains_rules == "no other bags" {
+        let contains: Vec<BagEdge> = if contains_rules == "no other bags" {
             vec![]
         } else {
             contains_rules
@@ -51,7 +45,7 @@ impl BagRule {
                     let mut contains_bag_name = String::from(rule_split.next().unwrap());
                     contains_bag_name.push(' ');
                     contains_bag_name.push_str(rule_split.next().unwrap());
-                    ContainsRule {
+                    BagEdge {
                         bag_name: contains_bag_name,
                         count,
                     }
@@ -107,13 +101,10 @@ impl BagTree {
             let contained_in_bag = String::from(bag_rule.bag_name.clone());
 
             match self.find_bag_node_index(&rule.bag_name) {
-                // There is already a node for this bag
                 Some(index) => {
-                    // We can safely unwrap here since we know the index exists
                     let bag_node = self.bag_nodes.get_mut(index).unwrap();
                     bag_node.contained_in.push(contained_in_bag);
                 }
-                // There is no existing node for this bag
                 None => {
                     let new_node = BagNode {
                         bag_name: rule.bag_name.clone(),
@@ -138,13 +129,11 @@ impl BagTree {
     }
 
     fn find_num_ancestors(&self, bag_name: &str) -> usize {
-        let ancestors: HashSet<String> = self
-            .get_ancestors(bag_name)
+        self.get_ancestors(bag_name)
             .iter()
             .map(|a| a.clone())
-            .collect();
-
-        ancestors.len()
+            .collect::<HashSet<String>>()
+            .len()
     }
 
     fn get_ancestors(&self, bag_name: &str) -> Vec<String> {
@@ -155,8 +144,7 @@ impl BagTree {
             vec![]
         } else {
             let mut direct_ancestors: Vec<String> = start_node.contained_in.clone();
-            let mut node_ancestors: Vec<String> = start_node
-                .contained_in
+            let mut node_ancestors: Vec<String> = direct_ancestors
                 .iter()
                 .map(|contained_in| self.get_ancestors(contained_in))
                 .flatten()
@@ -168,18 +156,13 @@ impl BagTree {
 
     // Gets the number of bags inside the given bag, inclusive of the given bag
     fn get_sub_bags_inclusive(&self, bag_name: &str) -> usize {
-        // The unwrap assumes you've filled out the tree
         let start_index = self.find_bag_node_index(bag_name).unwrap();
         let start_node = self.bag_nodes.get(start_index).unwrap();
-        if start_node.contains.len() == 0 {
-            return 1;
-        } else {
-            return 1 + start_node
-                .contains
-                .iter()
-                .map(|edge| edge.count * self.get_sub_bags_inclusive(&edge.bag_name))
-                .sum::<usize>();
-        };
+        return 1 + start_node
+            .contains
+            .iter()
+            .map(|edge| edge.count * self.get_sub_bags_inclusive(&edge.bag_name))
+            .sum::<usize>();
     }
 }
 
@@ -239,11 +222,11 @@ dotted black bags contain no other bags.";
         let expected = BagRule {
             bag_name: String::from("light red"),
             contains: vec![
-                ContainsRule {
+                BagEdge {
                     bag_name: String::from("bright white"),
                     count: 1,
                 },
-                ContainsRule {
+                BagEdge {
                     bag_name: String::from("muted yellow"),
                     count: 2,
                 },
@@ -259,7 +242,7 @@ dotted black bags contain no other bags.";
         let bag_rule = BagRule::new(rule);
         let expected = BagRule {
             bag_name: String::from("light red"),
-            contains: vec![ContainsRule {
+            contains: vec![BagEdge {
                 bag_name: String::from("bright white"),
                 count: 1,
             }],
@@ -379,7 +362,6 @@ dotted black bags contain no other bags.";
     #[test]
     fn part2_test() {
         let generated_input = input_generator(FULL_INPUT);
-        println!("{:#?}", generated_input);
         let result = part2(&generated_input);
         let expected = 32;
 
