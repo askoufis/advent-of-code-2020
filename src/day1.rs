@@ -73,7 +73,7 @@ fn part2_alt2(entries: &[usize]) -> usize {
         })
         .unwrap()
         .into_iter()
-        .fold(1, |acc, val| acc * val)
+        .product()
 }
 
 #[cfg(test)]
