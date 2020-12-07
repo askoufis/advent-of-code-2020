@@ -8,7 +8,7 @@ struct BagTree {
 #[derive(Debug, PartialEq)]
 struct BagNode {
     bag_name: String,
-    contained_in: Vec<BagEdge>,
+    contained_in: Vec<String>,
     contains: Vec<BagEdge>,
 }
 
@@ -104,23 +104,20 @@ impl BagTree {
         }
 
         bag_rule.contains.iter().for_each(|rule| {
-            let contained_in_edge = BagEdge {
-                bag_name: bag_rule.bag_name.clone(),
-                count: rule.count,
-            };
+            let contained_in_bag = String::from(bag_rule.bag_name.clone());
 
             match self.find_bag_node_index(&rule.bag_name) {
                 // There is already a node for this bag
                 Some(index) => {
                     // We can safely unwrap here since we know the index exists
                     let bag_node = self.bag_nodes.get_mut(index).unwrap();
-                    bag_node.contained_in.push(contained_in_edge);
+                    bag_node.contained_in.push(contained_in_bag);
                 }
                 // There is no existing node for this bag
                 None => {
                     let new_node = BagNode {
                         bag_name: rule.bag_name.clone(),
-                        contained_in: vec![contained_in_edge],
+                        contained_in: vec![contained_in_bag],
                         contains: vec![],
                     };
 
@@ -157,15 +154,11 @@ impl BagTree {
         if start_node.contained_in.len() == 0 {
             vec![]
         } else {
-            let mut direct_ancestors: Vec<String> = start_node
-                .contained_in
-                .iter()
-                .map(|contained_in| contained_in.bag_name.clone())
-                .collect();
+            let mut direct_ancestors: Vec<String> = start_node.contained_in.clone();
             let mut node_ancestors: Vec<String> = start_node
                 .contained_in
                 .iter()
-                .map(|contained_in| self.get_ancestors(&contained_in.bag_name))
+                .map(|contained_in| self.get_ancestors(contained_in))
                 .flatten()
                 .collect();
             direct_ancestors.append(&mut node_ancestors);
@@ -214,6 +207,30 @@ fn part2(bag_tree: &BagTree) -> usize {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    const FULL_INPUT: &str = r"light red bags contain 1 bright white bag, 2 muted yellow bags.
+dark orange bags contain 3 bright white bags, 4 muted yellow bags.
+bright white bags contain 1 shiny gold bag.
+muted yellow bags contain 2 shiny gold bags, 9 faded blue bags.
+shiny gold bags contain 1 dark olive bag, 2 vibrant plum bags.
+dark olive bags contain 3 faded blue bags, 4 dotted black bags.
+vibrant plum bags contain 5 faded blue bags, 6 dotted black bags.
+faded blue bags contain no other bags.
+dotted black bags contain no other bags.";
+
+    fn generate_2rule_bag_tree() -> BagTree {
+        let mut bag_tree = BagTree::new(3);
+
+        let rule1 = "light red bags contain 1 bright white bag, 2 muted yellow bags.";
+        let rule2 = "pale orange bags contain 2 light red bags.";
+        let bag_rule1 = BagRule::new(rule1);
+        let bag_rule2 = BagRule::new(rule2);
+
+        bag_tree.add_bag_rule(bag_rule1);
+        bag_tree.add_bag_rule(bag_rule2);
+
+        bag_tree
+    }
 
     #[test]
     fn double_bag_rule_new_test() {
@@ -290,18 +307,12 @@ mod tests {
                 },
                 BagNode {
                     bag_name: String::from("bright white"),
-                    contained_in: vec![BagEdge {
-                        bag_name: String::from("light red"),
-                        count: 1,
-                    }],
+                    contained_in: vec![String::from("light red")],
                     contains: vec![],
                 },
                 BagNode {
                     bag_name: String::from("muted yellow"),
-                    contained_in: vec![BagEdge {
-                        bag_name: String::from("light red"),
-                        count: 2,
-                    }],
+                    contained_in: vec![String::from("light red")],
                     contains: vec![],
                 },
             ],
@@ -311,15 +322,7 @@ mod tests {
 
     #[test]
     fn find_num_ancestors_test() {
-        let mut bag_tree = BagTree::new(3);
-
-        let rule1 = "light red bags contain 1 bright white bag, 2 muted yellow bags.";
-        let rule2 = "pale orange bags contain 2 light red bags.";
-        let bag_rule1 = BagRule::new(rule1);
-        let bag_rule2 = BagRule::new(rule2);
-
-        bag_tree.add_bag_rule(bag_rule1);
-        bag_tree.add_bag_rule(bag_rule2);
+        let bag_tree = generate_2rule_bag_tree();
 
         let red_bag_ancestors = 1;
         let white_bag_ancestors = 2;
@@ -338,15 +341,7 @@ mod tests {
 
     #[test]
     fn get_ancestors_test() {
-        let mut bag_tree = BagTree::new(3);
-
-        let rule1 = "light red bags contain 1 bright white bag, 2 muted yellow bags.";
-        let rule2 = "pale orange bags contain 2 light red bags.";
-        let bag_rule1 = BagRule::new(rule1);
-        let bag_rule2 = BagRule::new(rule2);
-
-        bag_tree.add_bag_rule(bag_rule1);
-        bag_tree.add_bag_rule(bag_rule2);
+        let bag_tree = generate_2rule_bag_tree();
 
         let expected_red_ancestors: Vec<String> = vec![String::from("pale orange")];
         let expected_orange_ancestors: Vec<String> = vec![];
@@ -360,15 +355,7 @@ mod tests {
 
     #[test]
     fn get_sub_bags_inclusive_test() {
-        let mut bag_tree = BagTree::new(3);
-
-        let rule1 = "light red bags contain 1 bright white bag, 2 muted yellow bags.";
-        let rule2 = "pale orange bags contain 2 light red bags.";
-        let bag_rule1 = BagRule::new(rule1);
-        let bag_rule2 = BagRule::new(rule2);
-
-        bag_tree.add_bag_rule(bag_rule1);
-        bag_tree.add_bag_rule(bag_rule2);
+        let bag_tree = generate_2rule_bag_tree();
 
         let red_bag_value = bag_tree.get_sub_bags_inclusive("light red");
         let orange_bag_value = bag_tree.get_sub_bags_inclusive("pale orange");
@@ -382,16 +369,7 @@ mod tests {
 
     #[test]
     fn part1_test() {
-        let input = r"light red bags contain 1 bright white bag, 2 muted yellow bags.
-dark orange bags contain 3 bright white bags, 4 muted yellow bags.
-bright white bags contain 1 shiny gold bag.
-muted yellow bags contain 2 shiny gold bags, 9 faded blue bags.
-shiny gold bags contain 1 dark olive bag, 2 vibrant plum bags.
-dark olive bags contain 3 faded blue bags, 4 dotted black bags.
-vibrant plum bags contain 5 faded blue bags, 6 dotted black bags.
-faded blue bags contain no other bags.
-dotted black bags contain no other bags.";
-        let generated_input = input_generator(&input);
+        let generated_input = input_generator(FULL_INPUT);
         let result = part1(&generated_input);
         let expected = 4;
 
@@ -400,16 +378,7 @@ dotted black bags contain no other bags.";
 
     #[test]
     fn part2_test() {
-        let input = r"light red bags contain 1 bright white bag, 2 muted yellow bags.
-dark orange bags contain 3 bright white bags, 4 muted yellow bags.
-bright white bags contain 1 shiny gold bag.
-muted yellow bags contain 2 shiny gold bags, 9 faded blue bags.
-shiny gold bags contain 1 dark olive bag, 2 vibrant plum bags.
-dark olive bags contain 3 faded blue bags, 4 dotted black bags.
-vibrant plum bags contain 5 faded blue bags, 6 dotted black bags.
-faded blue bags contain no other bags.
-dotted black bags contain no other bags.";
-        let generated_input = input_generator(&input);
+        let generated_input = input_generator(FULL_INPUT);
         println!("{:#?}", generated_input);
         let result = part2(&generated_input);
         let expected = 32;
