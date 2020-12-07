@@ -74,26 +74,33 @@ impl BagTree {
     }
 
     fn add_bag_rule(&mut self, bag_rule: BagRule) {
-        if let None = self
+        let contains: Vec<BagEdge> = bag_rule
+            .contains
+            .iter()
+            .map(|rule| BagEdge {
+                bag_name: rule.bag_name.clone(),
+                count: rule.count,
+            })
+            .collect();
+
+        match self
             .bag_nodes
             .iter()
             .position(|bag_node| bag_node.bag_name == bag_rule.bag_name)
         {
-            let contains = bag_rule
-                .contains
-                .iter()
-                .map(|rule| BagEdge {
-                    bag_name: rule.bag_name.clone(),
-                    count: rule.count,
-                })
-                .collect();
-            let new_node = BagNode {
-                bag_name: bag_rule.bag_name.clone(),
-                contained_in: vec![],
-                contains,
-            };
+            Some(index) => {
+                let bag_node = self.bag_nodes.get_mut(index).unwrap();
+                bag_node.contains = contains;
+            }
+            None => {
+                let new_node = BagNode {
+                    bag_name: bag_rule.bag_name.clone(),
+                    contained_in: vec![],
+                    contains,
+                };
 
-            self.add_bag_node(new_node);
+                self.add_bag_node(new_node);
+            }
         }
 
         bag_rule.contains.iter().for_each(|rule| {
@@ -147,7 +154,6 @@ impl BagTree {
         // The unwrap assumes you've filled out the tree
         let start_index = self.find_bag_node_index(bag_name).unwrap();
         let start_node = self.bag_nodes.get(start_index).unwrap();
-        println!("{:#?}", start_node);
         if start_node.contained_in.len() == 0 {
             vec![]
         } else {
@@ -166,6 +172,22 @@ impl BagTree {
             direct_ancestors
         }
     }
+
+    // Gets the number of bags inside the given bag, inclusive of the given bag
+    fn get_sub_bags_inclusive(&self, bag_name: &str) -> usize {
+        // The unwrap assumes you've filled out the tree
+        let start_index = self.find_bag_node_index(bag_name).unwrap();
+        let start_node = self.bag_nodes.get(start_index).unwrap();
+        if start_node.contains.len() == 0 {
+            return 1;
+        } else {
+            return 1 + start_node
+                .contains
+                .iter()
+                .map(|edge| edge.count * self.get_sub_bags_inclusive(&edge.bag_name))
+                .sum::<usize>();
+        };
+    }
 }
 
 #[aoc_generator(day7)]
@@ -182,6 +204,11 @@ fn input_generator(input: &str) -> BagTree {
 #[aoc(day7, part1)]
 fn part1(bag_tree: &BagTree) -> usize {
     bag_tree.find_num_ancestors("shiny gold")
+}
+
+#[aoc(day7, part2)]
+fn part2(bag_tree: &BagTree) -> usize {
+    bag_tree.get_sub_bags_inclusive("shiny gold") - 1
 }
 
 #[cfg(test)]
@@ -332,6 +359,28 @@ mod tests {
     }
 
     #[test]
+    fn get_sub_bags_inclusive_test() {
+        let mut bag_tree = BagTree::new(3);
+
+        let rule1 = "light red bags contain 1 bright white bag, 2 muted yellow bags.";
+        let rule2 = "pale orange bags contain 2 light red bags.";
+        let bag_rule1 = BagRule::new(rule1);
+        let bag_rule2 = BagRule::new(rule2);
+
+        bag_tree.add_bag_rule(bag_rule1);
+        bag_tree.add_bag_rule(bag_rule2);
+
+        let red_bag_value = bag_tree.get_sub_bags_inclusive("light red");
+        let orange_bag_value = bag_tree.get_sub_bags_inclusive("pale orange");
+
+        let expected_red_bag_value = 4;
+        let expected_orange_bag_value = 9;
+
+        assert_eq!(red_bag_value, expected_red_bag_value);
+        assert_eq!(orange_bag_value, expected_orange_bag_value);
+    }
+
+    #[test]
     fn part1_test() {
         let input = r"light red bags contain 1 bright white bag, 2 muted yellow bags.
 dark orange bags contain 3 bright white bags, 4 muted yellow bags.
@@ -342,11 +391,28 @@ dark olive bags contain 3 faded blue bags, 4 dotted black bags.
 vibrant plum bags contain 5 faded blue bags, 6 dotted black bags.
 faded blue bags contain no other bags.
 dotted black bags contain no other bags.";
-        // println!("{}", input);
         let generated_input = input_generator(&input);
-        println!("{:#?}", generated_input);
         let result = part1(&generated_input);
         let expected = 4;
+
+        assert_eq!(result, expected);
+    }
+
+    #[test]
+    fn part2_test() {
+        let input = r"light red bags contain 1 bright white bag, 2 muted yellow bags.
+dark orange bags contain 3 bright white bags, 4 muted yellow bags.
+bright white bags contain 1 shiny gold bag.
+muted yellow bags contain 2 shiny gold bags, 9 faded blue bags.
+shiny gold bags contain 1 dark olive bag, 2 vibrant plum bags.
+dark olive bags contain 3 faded blue bags, 4 dotted black bags.
+vibrant plum bags contain 5 faded blue bags, 6 dotted black bags.
+faded blue bags contain no other bags.
+dotted black bags contain no other bags.";
+        let generated_input = input_generator(&input);
+        println!("{:#?}", generated_input);
+        let result = part2(&generated_input);
+        let expected = 32;
 
         assert_eq!(result, expected);
     }
