@@ -3,13 +3,7 @@ use std::iter;
 
 #[aoc_generator(day1)]
 fn input_generator(input: &str) -> Vec<usize> {
-    input
-        .lines()
-        .map(|l| {
-            let entry = l.trim().parse().unwrap();
-            entry
-        })
-        .collect()
+    input.lines().map(|l| l.trim().parse().unwrap()).collect()
 }
 
 #[aoc(day1, part1, alt1)]
@@ -67,10 +61,7 @@ fn part2_alt2(entries: &[usize]) -> usize {
     entries
         .into_iter()
         .combinations(3)
-        .find(|combination| {
-            let sum: usize = combination.clone().into_iter().sum();
-            sum == 2020
-        })
+        .find(|combination| combination.clone().into_iter().sum::<usize>() == 2020)
         .unwrap()
         .into_iter()
         .product()
