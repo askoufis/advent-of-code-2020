@@ -4,39 +4,28 @@ fn input_generator(input: &str) -> Vec<usize> {
 }
 
 fn is_value_sum(value: usize, window: &[usize]) -> bool {
-    let mut flag = false;
-    let window_size = window.len();
+    (0..window.len())
+        .filter(|i| {
+            let current_item = window[*i];
+            if value > current_item {
+                let target = value - current_item;
 
-    for i in 0..window_size {
-        let current_item = window[i];
-        if value > current_item {
-            let target = value - current_item;
-
-            if window.contains(&target) {
-                flag = true;
-                break;
+                return window.contains(&target);
             }
-        }
-    }
-
-    flag
+            false
+        })
+        .count()
+        > 0
 }
 
 fn real_part1(data: &[usize], window_size: usize) -> usize {
-    let num_items = data.len();
-    let mut w = data.windows(window_size);
-    let mut bingo = 0;
-
-    for i in window_size..num_items {
-        let current_item = data[i];
-        let window = w.next().unwrap();
-        if !is_value_sum(current_item, window) {
-            bingo = current_item;
-            break;
-        }
-    }
-
-    bingo
+    *data
+        .windows(window_size)
+        .zip(data.iter().skip(window_size))
+        .filter(|(window, value)| !is_value_sum(**value, window))
+        .next()
+        .unwrap()
+        .1
 }
 
 #[aoc(day9, part1)]
@@ -47,7 +36,7 @@ fn part1(data: &[usize]) -> usize {
 fn real_part2(value: usize, data: &[usize]) -> usize {
     let mut window_size = 2;
 
-    let result = loop {
+    loop {
         if let Some(w) = data
             .windows(window_size)
             .filter(|window| window.into_iter().sum::<usize>() == value)
@@ -57,9 +46,7 @@ fn real_part2(value: usize, data: &[usize]) -> usize {
         }
 
         window_size += 1;
-    };
-
-    result
+    }
 }
 
 #[aoc(day9, part2)]
