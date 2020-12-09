@@ -32,15 +32,11 @@ fn part1(data: &[usize]) -> usize {
 }
 
 fn real_part2(value: usize, data: &[usize]) -> usize {
-    let window = (2..)
-        .map(|window_size| {
-            data.windows(window_size)
-                .find(|window| window.into_iter().sum::<usize>() == value)
-        })
-        .find(|window| window.is_some())
-        .unwrap()
-        .unwrap();
-    window.iter().min().unwrap() + window.iter().max().unwrap()
+    (2..data.len())
+        .flat_map(|window_size| data.windows(window_size).collect::<Vec<&[usize]>>())
+        .filter(|window| window.iter().sum::<usize>() == value)
+        .map(|window| window.iter().min().unwrap() + window.iter().max().unwrap())
+        .collect::<Vec<usize>>()[0]
 }
 
 #[aoc(day9, part2)]
