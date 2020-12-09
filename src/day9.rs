@@ -20,8 +20,7 @@ fn real_part1(data: &[usize], window_size: usize) -> usize {
     *data
         .windows(window_size)
         .zip(data.iter().skip(window_size))
-        .filter(|(window, value)| !is_value_sum(**value, window))
-        .next()
+        .find(|(window, value)| !is_value_sum(**value, window))
         .unwrap()
         .1
 }
