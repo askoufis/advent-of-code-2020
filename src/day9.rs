@@ -4,13 +4,11 @@ fn input_generator(input: &str) -> Vec<usize> {
 }
 
 fn is_value_sum(value: usize, window: &[usize]) -> bool {
-    (0..window.len())
-        .filter(|i| {
-            let current_item = window[*i];
-            if value > current_item {
-                let target = value - current_item;
-
-                return window.contains(&target);
+    window
+        .iter()
+        .filter(|current_item| {
+            if value > **current_item {
+                return window.contains(&(value - **current_item));
             }
             false
         })
