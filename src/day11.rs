@@ -9,8 +9,22 @@ enum Seat {
 }
 
 impl Seat {
-    fn is_seat(&self) -> bool {
+    fn is_not_floor(&self) -> bool {
         *self != Seat::Floor
+    }
+}
+
+impl FromStr for Seat {
+    type Err = core::convert::Infallible;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        if s == "L" {
+            return Ok(Seat::Empty);
+        }
+        if s == "#" {
+            return Ok(Seat::Occupied);
+        }
+        return Ok(Seat::Floor);
     }
 }
 
@@ -60,8 +74,7 @@ impl Universe {
     fn get_index(&self, row: isize, column: isize) -> isize {
         if row < 0 || row >= self.height as isize {
             return -1;
-        }
-        if column < 0 || column >= self.width as isize {
+        } else if column < 0 || column >= self.width as isize {
             return -1;
         }
 
@@ -93,39 +106,23 @@ impl Universe {
         count_occupied_seats(&seats)
     }
 
-    fn occupied_visible_direction(
-        &self,
-        row: isize,
-        column: isize,
-        direction: (isize, isize),
-    ) -> bool {
-        let mut result = false;
-        let mut index = self.get_index(row, column);
-
-        let mut row_index = row;
-        let mut column_index = column;
-        // println!("Direction: {:#?}", direction);
-
-        while index != -1 {
-            // println!("row: {}, column: {}", row_index, column_index);
-            let seat = self.seats[index as usize];
-
-            if seat.is_seat() {
-                if seat == Seat::Empty {
-                    break;
-                } else {
-                    result = true;
-                    break;
-                }
-            }
-
-            row_index += direction.0;
-            column_index += direction.1;
-
-            index = self.get_index(row_index, column_index);
+    fn seat_in_direction(&self, row: isize, column: isize, direction: (isize, isize)) -> Seat {
+        match [direction]
+            .iter()
+            .cycle()
+            .enumerate()
+            .skip(1)
+            .map(|(i, d)| {
+                let rc = (row + (i as isize * d.0), column + (i as isize * d.1));
+                self.get_index(rc.0, rc.1)
+            })
+            .take_while(|index| *index != -1)
+            .map(|index| self.seats[index as usize])
+            .find(|seat| seat.is_not_floor())
+        {
+            Some(seat) => seat,
+            None => Seat::Floor,
         }
-
-        result
     }
 
     fn occupied_visible_count(&self, row: isize, column: isize) -> usize {
@@ -138,53 +135,45 @@ impl Universe {
         let se = (1, 1);
         let west = (0, -1);
         let east = (0, 1);
-
         let directions = [north, nw, ne, south, sw, se, west, east];
 
-        let result = directions
+        directions
             .iter()
-            .map(|d| self.occupied_visible_direction(row, column, *d))
-            .filter(|d| *d)
-            .count();
-
-        result
+            .map(|d| self.seat_in_direction(row, column, *d))
+            .filter(|seat| *seat == Seat::Occupied)
+            .count()
     }
 
-    fn get_next_seat_state(&self, row: isize, column: isize) -> Seat {
-        let current_index = self.get_index(row, column) as usize;
-        let current_seat = self.seats[current_index];
-
-        if current_seat == Seat::Floor {
+    fn get_next_seat_state(&self, seat: &Seat, row: isize, column: isize) -> Seat {
+        if *seat == Seat::Floor {
             return Seat::Floor;
+        } else {
+            let num_occupied = self.occupied_neighbour_count(row, column);
+
+            if *seat == Seat::Empty && num_occupied == 0 {
+                return Seat::Occupied;
+            } else if *seat == Seat::Occupied && num_occupied >= 4 {
+                return Seat::Empty;
+            }
         }
 
-        let num_occupied = self.occupied_neighbour_count(row, column);
-
-        if current_seat == Seat::Empty && num_occupied == 0 {
-            return Seat::Occupied;
-        }
-
-        if current_seat == Seat::Occupied && num_occupied >= 4 {
-            return Seat::Empty;
-        }
-
-        return current_seat;
+        return *seat;
     }
 
-    fn get_next_seat_state2(&self, row: isize, column: isize) -> Seat {
-        let current_index = self.get_index(row, column) as usize;
-        let current_seat = self.seats[current_index];
-        let num_occupied_visible = self.occupied_visible_count(row, column);
+    fn get_next_seat_state2(&self, seat: &Seat, row: isize, column: isize) -> Seat {
+        if *seat == Seat::Floor {
+            return Seat::Floor;
+        } else {
+            let num_occupied_visible = self.occupied_visible_count(row, column);
 
-        if current_seat == Seat::Empty && num_occupied_visible == 0 {
-            return Seat::Occupied;
+            if *seat == Seat::Empty && num_occupied_visible == 0 {
+                return Seat::Occupied;
+            } else if *seat == Seat::Occupied && num_occupied_visible >= 5 {
+                return Seat::Empty;
+            }
         }
 
-        if current_seat == Seat::Occupied && num_occupied_visible >= 5 {
-            return Seat::Empty;
-        }
-
-        return current_seat;
+        return *seat;
     }
 
     fn tick(&mut self) -> State {
@@ -192,9 +181,10 @@ impl Universe {
 
         for row in 0..self.height {
             for column in 0..self.width {
-                println!("Row: {}, Column: {}", row, column);
                 let index = self.get_index(row as isize, column as isize);
-                let next_seat_state = self.get_next_seat_state(row as isize, column as isize);
+                let current_seat = self.seats[index as usize];
+                let next_seat_state =
+                    self.get_next_seat_state(&current_seat, row as isize, column as isize);
 
                 next[index as usize] = next_seat_state;
             }
@@ -214,7 +204,9 @@ impl Universe {
         for row in 0..self.height {
             for column in 0..self.width {
                 let index = self.get_index(row as isize, column as isize);
-                let next_seat_state = self.get_next_seat_state2(row as isize, column as isize);
+                let current_seat = self.seats[index as usize];
+                let next_seat_state =
+                    self.get_next_seat_state2(&current_seat, row as isize, column as isize);
 
                 next[index as usize] = next_seat_state;
             }
@@ -226,20 +218,6 @@ impl Universe {
             self.seats = next;
             return State::Unstable;
         }
-    }
-}
-
-impl FromStr for Seat {
-    type Err = core::convert::Infallible;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        if s == "L" {
-            return Ok(Seat::Empty);
-        }
-        if s == "#" {
-            return Ok(Seat::Occupied);
-        }
-        return Ok(Seat::Floor);
     }
 }
 
@@ -259,8 +237,8 @@ fn input_generator(input: &str) -> Universe {
         })
         .flatten()
         .collect();
-    let width = input_lines.clone().next().unwrap().chars().count();
-    let height = input_lines.clone().count();
+    let width = input.lines().next().unwrap().chars().count();
+    let height = input.lines().count();
 
     Universe {
         width,
@@ -316,6 +294,24 @@ L.LLLLL.LL";
         let generated_input = input_generator(&input);
         let result = part1(&generated_input);
         let expected = 37;
+        assert_eq!(result, expected);
+    }
+
+    #[test]
+    fn occupied_visible_count_test() {
+        let input = r".......#.
+...#.....
+.#.......
+.........
+..#L....#
+....#....
+.........
+#........
+...#.....";
+        let generated_input = input_generator(&input);
+        let result = generated_input.occupied_visible_count(4, 3);
+        let expected = 8;
+
         assert_eq!(result, expected);
     }
 
