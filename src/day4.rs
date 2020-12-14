@@ -3,23 +3,9 @@ use std::collections::HashMap;
 const REQUIRED_KEYS: [&str; 7] = ["byr", "iyr", "eyr", "hgt", "hcl", "ecl", "pid"];
 const EYE_COLOURS: [&str; 7] = ["amb", "blu", "brn", "gry", "grn", "hzl", "oth"];
 
-fn validate_byr(byr: &str) -> bool {
-    byr.parse::<usize>()
-        .map_or(false, |foo| foo >= 1920 && foo <= 2002)
-}
-
-fn validate_iyr(iyr: &str) -> bool {
-    iyr.parse::<usize>()
-        .map_or(false, |foo| foo >= 2010 && foo <= 2020)
-}
-
-fn validate_eyr(eyr: &str) -> bool {
-    eyr.parse::<usize>()
-        .map_or(false, |foo| foo >= 2020 && foo <= 2030)
-}
-
-fn validate_ecl(ecl: &str) -> bool {
-    EYE_COLOURS.contains(&ecl)
+fn validate_range(s: &str, lower_bound: usize, upper_bound: usize) -> bool {
+    s.parse::<usize>()
+        .map_or(false, |foo| foo >= lower_bound && foo <= upper_bound)
 }
 
 fn validate_pid(pid: &str) -> bool {
@@ -63,15 +49,15 @@ fn validate_value(key: &str, value: &str) -> bool {
     }
 
     if key == "byr" {
-        return validate_byr(value);
+        return validate_range(value, 1920, 2002);
     }
 
     if key == "iyr" {
-        return validate_iyr(value);
+        return validate_range(value, 2010, 2020);
     }
 
     if key == "eyr" {
-        return validate_eyr(value);
+        return validate_range(value, 2020, 2030);
     }
 
     if key == "hgt" {
@@ -79,7 +65,7 @@ fn validate_value(key: &str, value: &str) -> bool {
     }
 
     if key == "ecl" {
-        return validate_ecl(value);
+        return EYE_COLOURS.contains(&value);
     }
 
     if key == "pid" {
@@ -100,9 +86,7 @@ fn input_generator(input: &str) -> Vec<HashMap<String, String>> {
                 .split(' ')
                 .map(|key_value| {
                     let pair: Vec<_> = key_value.split(':').collect();
-                    let key = pair[0].to_string();
-                    let value = pair[1].to_string();
-                    (key, value)
+                    (pair[0].to_string(), pair[1].to_string())
                 })
                 .collect::<HashMap<String, String>>()
         })
@@ -115,7 +99,7 @@ fn part1(passports: &[HashMap<String, String>]) -> usize {
         .iter()
         .filter(|passport| {
             let filtered_passport: HashMap<&String, &String> =
-                passport.iter().filter(|(k, _)| k != &"cid").collect();
+                passport.iter().filter(|(k, _)| *k != "cid").collect();
             filtered_passport.keys().len() == 7
         })
         .count()
@@ -127,17 +111,14 @@ fn part2(passports: &[HashMap<String, String>]) -> usize {
         .iter()
         .filter(|passport| {
             let filtered_passport: HashMap<&String, &String> =
-                passport.iter().filter(|(k, _)| k != &"cid").collect();
+                passport.iter().filter(|(k, _)| *k != "cid").collect();
             if filtered_passport.keys().len() != 7 {
                 return false;
             }
 
-            REQUIRED_KEYS.iter().all(|key| {
-                let value = passport.get(*key);
-                match value {
-                    Some(val) => validate_value(key, val),
-                    None => false,
-                }
+            REQUIRED_KEYS.iter().all(|key| match passport.get(*key) {
+                Some(value) => validate_value(key, value),
+                None => false,
             })
         })
         .count()
