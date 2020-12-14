@@ -227,7 +227,6 @@ fn count_occupied_seats(seats: &[Seat]) -> usize {
 
 #[aoc_generator(day11)]
 fn input_generator(input: &str) -> Universe {
-    let input_lines = input.lines();
     let seats = input
         .lines()
         .map(|line| {

@@ -103,14 +103,13 @@ struct Item {
 }
 
 #[aoc(day13, part2)]
-fn part2(t: &(Timetable, Vec<BusTime>)) -> usize {
-    let bus_times = t.1.clone();
-    let delay = bus_times.len() - 1;
+fn part2(input: &(Timetable, Vec<BusTime>)) -> usize {
+    let delay = input.1.len() - 1;
     let initial_value = Item {
-        time: bus_times[0].get_time(),
-        lcm: bus_times[0].get_time(),
+        time: input.1[0].get_time(),
+        lcm: input.1[0].get_time(),
     };
-    let result = bus_times[1..]
+    let result = input.1[1..]
         .iter()
         .fold(initial_value, |acc, bus_time| match bus_time {
             BusTime::X => Item {
