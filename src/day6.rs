@@ -57,7 +57,6 @@ a
 
 b
         ";
-        println!("{}", input);
         let generated_input = input_generator(&input);
         let result = part1(&generated_input);
         let expected = 11;
