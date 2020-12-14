@@ -158,11 +158,11 @@ impl BagTree {
     fn get_sub_bags_inclusive(&self, bag_name: &str) -> usize {
         let start_index = self.find_bag_node_index(bag_name).unwrap();
         let start_node = self.bag_nodes.get(start_index).unwrap();
-        return 1 + start_node
+        1 + start_node
             .contains
             .iter()
             .map(|edge| edge.count * self.get_sub_bags_inclusive(&edge.bag_name))
-            .sum::<usize>();
+            .sum::<usize>()
     }
 }
 
