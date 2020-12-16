@@ -1,14 +1,13 @@
-use std::{collections::VecDeque, str::FromStr};
+use std::collections::VecDeque;
+use std::ops::RangeInclusive;
+use std::str::FromStr;
 
-#[derive(Debug, Clone, PartialEq)]
-struct MinMax {
-    min: usize,
-    max: usize,
-}
+type Ranges = (RangeInclusive<usize>, RangeInclusive<usize>);
+
 #[derive(Debug, Clone, PartialEq)]
 struct Field {
     name: String,
-    ranges: [MinMax; 2],
+    ranges: Ranges,
 }
 
 #[derive(Debug)]
@@ -18,14 +17,8 @@ struct Puzzle {
     nearby_tickets: Vec<Vec<usize>>,
 }
 
-fn validate_range(value: usize, min_max: &MinMax) -> bool {
-    value >= min_max.min && value <= min_max.max
-}
-
-fn validate_field_value(value: usize, field: &Field) -> bool {
-    let result1 = validate_range(value, &field.ranges[0]);
-    let result2 = validate_range(value, &field.ranges[1]);
-    result1 || result2
+fn validate_ranges(value: usize, ranges: &Ranges) -> bool {
+    ranges.0.contains(&value) || ranges.1.contains(&value)
 }
 
 fn parse_ticket(ticket_line: &str) -> Vec<usize> {
@@ -48,24 +41,21 @@ fn input_generator(input: &str) -> Puzzle {
         .map(|line| {
             let mut line_iter = line.split(": ");
             let name = line_iter.next().unwrap().to_string();
-            let mut ranges = line_iter.next().unwrap().split(" or ").map(|r| {
+            let mut ranges_iter = line_iter.next().unwrap().split(" or ").map(|r| {
                 let min_max: Vec<usize> = r
                     .split('-')
                     .map(usize::from_str)
                     .map(Result::unwrap)
                     .collect();
-                MinMax {
-                    min: min_max[0],
-                    max: min_max[1],
-                }
+                RangeInclusive::new(min_max[0], min_max[1])
             });
-            let ranges = [ranges.next().unwrap(), ranges.next().unwrap()];
+            let ranges = (ranges_iter.next().unwrap(), ranges_iter.next().unwrap());
 
             Field { name, ranges }
         })
         .collect();
 
-    let your_ticket = parse_ticket(your_ticket_str.lines().skip(1).next().unwrap());
+    let your_ticket = parse_ticket(your_ticket_str.lines().nth(1).unwrap());
 
     let nearby_tickets = nearby_tickets_str
         .lines()
@@ -89,11 +79,10 @@ fn part1(input: &Puzzle) -> usize {
             ticket
                 .iter()
                 .filter(|&&value| {
-                    !input.fields.iter().any(|field| {
-                        let result1 = validate_range(value, &field.ranges[0]);
-                        let result2 = validate_range(value, &field.ranges[1]);
-                        result1 || result2
-                    })
+                    !input
+                        .fields
+                        .iter()
+                        .any(|field| validate_ranges(value, &field.ranges))
                 })
                 .sum::<usize>()
         })
@@ -107,7 +96,7 @@ fn get_valid_tickets(tickets: &[Vec<usize>], fields: &[Field]) -> Vec<Vec<usize>
             ticket.iter().all(|&value| {
                 fields
                     .iter()
-                    .any(|field| validate_field_value(value, field))
+                    .any(|field| validate_ranges(value, &field.ranges))
             })
         })
         .cloned()
@@ -131,18 +120,19 @@ fn get_field_order(valid_tickets: &[Vec<usize>], fields: &[Field]) -> Vec<String
                 values
                     .1
                     .iter()
-                    .all(|&value| validate_field_value(value, field))
+                    .all(|&value| validate_ranges(value, &field.ranges))
             })
             .collect();
-        if matching_fields.len() == 1 {
-            field_order.push((values.0, matching_fields[0].name.clone()));
-            mut_fields = mut_fields
-                .iter()
-                .filter(|&field| field.name != matching_fields[0].name)
-                .cloned()
-                .collect();
-        } else {
-            field_values.push_back(values);
+        match matching_fields.len() {
+            1 => {
+                field_order.push((values.0, matching_fields[0].name.clone()));
+                mut_fields = mut_fields
+                    .iter()
+                    .filter(|&field| field.name != matching_fields[0].name)
+                    .cloned()
+                    .collect();
+            }
+            _ => field_values.push_back(values),
         }
     }
     field_order.sort_by_key(|k| k.0);
