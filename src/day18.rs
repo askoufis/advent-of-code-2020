@@ -70,9 +70,8 @@ impl Expression {
 
     fn parse_no_brackets(s: &str) -> Self {
         let first_symbol_index = s.find(|c| is_symbol(c)).unwrap();
-        let values = s.split_at(first_symbol_index);
-        let l_value = values.0;
-        let r = values.1;
+        let l_value = &s[0..first_symbol_index];
+        let r = &s[first_symbol_index + 1..];
         println!("l: {}, r: {}", l_value, r);
         let l = Box::new(Equation::Value(l_value.parse().unwrap()));
         let r = Box::new(Equation::from_str(&r).unwrap());

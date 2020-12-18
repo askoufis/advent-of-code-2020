@@ -5,7 +5,7 @@ const EYE_COLOURS: [&str; 7] = ["amb", "blu", "brn", "gry", "grn", "hzl", "oth"]
 
 fn validate_range(s: &str, lower_bound: usize, upper_bound: usize) -> bool {
     s.parse::<usize>()
-        .map_or(false, |foo| foo >= lower_bound && foo <= upper_bound)
+        .map_or(false, |foo| (lower_bound..=upper_bound).contains(&foo))
 }
 
 fn validate_pid(pid: &str) -> bool {
