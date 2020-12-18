@@ -1,6 +1,8 @@
 use std::num::ParseIntError;
 use std::str::FromStr;
 
+use crate::vec::Vec2;
+
 const RIGHT_ROTATION_ORDER: [Direction; 4] =
     [Direction::N, Direction::E, Direction::S, Direction::W];
 const LEFT_ROTATION_ORDER: [Direction; 4] =
@@ -47,24 +49,18 @@ enum Direction {
     W,
 }
 
-#[derive(Debug, PartialEq, Clone, Copy)]
-struct Point {
-    x: isize,
-    y: isize,
-}
-
 struct Ship {
-    position: Point,
+    position: Vec2,
     facing: Direction,
-    waypoint: Point,
+    waypoint: Vec2,
 }
 
 impl Ship {
     fn new() -> Self {
         Ship {
-            position: Point { x: 0, y: 0 },
+            position: Vec2 { x: 0, y: 0 },
             facing: Direction::E,
-            waypoint: Point { x: 10, y: 1 },
+            waypoint: Vec2 { x: 10, y: 1 },
         }
     }
 
@@ -154,7 +150,7 @@ impl Ship {
         for _ in 0..turns {
             let new_x = -new_waypoint.y;
             let new_y = new_waypoint.x;
-            new_waypoint = Point { x: new_x, y: new_y };
+            new_waypoint = Vec2 { x: new_x, y: new_y };
         }
         self.waypoint = new_waypoint;
     }
@@ -175,7 +171,7 @@ impl Ship {
         for _ in 0..turns {
             let new_x = new_waypoint.y;
             let new_y = -new_waypoint.x;
-            new_waypoint = Point { x: new_x, y: new_y };
+            new_waypoint = Vec2 { x: new_x, y: new_y };
         }
         self.waypoint = new_waypoint;
     }
