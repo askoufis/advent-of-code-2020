@@ -42,8 +42,45 @@ fn consume_end(s: &str) -> (String, String, String) {
     (l.to_string(), symbol.to_string(), r.to_string())
 }
 
+fn consume_at(s: &str, index: usize) -> (String, String, String) {
+    let l = &s[0..index];
+    let symbol = &s[index..index + 1];
+    let r = &s[index + 1..];
+    (l.to_string(), symbol.to_string(), r.to_string())
+}
+
 fn consume_brackets(s: &str) -> String {
     s[1..s.len() - 1].to_string()
+}
+
+fn find_bracket_part(s: &str) -> (String, Option<(String, String)>) {
+    let s_string = s.to_string();
+    let s_chars: Vec<char> = s_string.chars().collect();
+    let mut bracket_tally = 1;
+    // We already know the first characters is a bracket
+    let mut index = 1;
+
+    while bracket_tally != 0 {
+        let c = s_chars[index];
+
+        if c == '(' {
+            bracket_tally += 1;
+        } else if c == ')' {
+            bracket_tally -= 1;
+        }
+        index += 1;
+    }
+
+    let l = &s.to_string()[0..index];
+    let rest = if index == s.len() {
+        None
+    } else {
+        let symbol = &s_string[index..index + 1];
+        let r = &s_string[index + 1..];
+        Some((symbol.to_string(), r.to_string()))
+    };
+
+    (l.to_string(), rest)
 }
 
 impl Equation {
@@ -65,7 +102,6 @@ impl Equation {
     }
 
     fn parse(s: &str) -> Equation {
-        println!("s: {}", s);
         if contains_brackets(s) {
             Equation::parse_brackets(s)
         } else {
@@ -75,7 +111,7 @@ impl Equation {
 
     fn parse_no_brackets(s: &str) -> Self {
         if is_mul(s) || is_add(s) {
-            let (l_string, symbol, r_string) = consume_start(s);
+            let (l_string, symbol, r_string) = consume_end(s);
             let l = Equation::parse_no_brackets(&l_string);
             let r = Equation::parse_no_brackets(&r_string);
             Equation::new_add_mul(l, &symbol, r)
@@ -85,12 +121,22 @@ impl Equation {
     }
 
     fn parse_brackets(s: &str) -> Equation {
+        println!("s: {}", s);
         let starts_with_bracket = s.starts_with('(');
         let ends_with_bracket = s.ends_with(')');
 
         if starts_with_bracket && ends_with_bracket {
-            // TODO: Handle case - (1*2)+(3*4)
-            Equation::BracketedEquation(Box::new(Equation::parse(&consume_brackets(s))))
+            let (l_string, rest) = find_bracket_part(s);
+            let l = Equation::BracketedEquation(Box::new(Equation::parse(&consume_brackets(
+                &l_string,
+            ))));
+            match rest {
+                Some((symbol, r_string)) => {
+                    let r = Equation::parse(&r_string);
+                    Equation::new_add_mul(l, &symbol, r)
+                }
+                None => l,
+            }
         } else if starts_with_bracket {
             let (l_string, symbol, r_string) = consume_end(s);
             let l = Equation::parse_brackets(&l_string);
@@ -100,6 +146,7 @@ impl Equation {
             let (l_string, symbol, r_string) = consume_start(s);
             let l = Equation::parse_no_brackets(&l_string);
             let r = Equation::parse_brackets(&r_string);
+            println!("l: {}, r: {}", l_string, r_string);
             Equation::new_add_mul(l, &symbol, r)
         }
     }
@@ -157,6 +204,16 @@ mod tests {
     }
 
     #[test]
+    fn consume_at_test() {
+        let s = "(3+4)*(4+5)";
+        let result = consume_at(s, 5);
+
+        assert_eq!(result.0, "(3+4)");
+        assert_eq!(result.1, "*");
+        assert_eq!(result.2, "(4+5)");
+    }
+
+    #[test]
     fn consume_brackets_test() {
         let s = "(4+5)";
         let result = consume_brackets(s);
@@ -169,12 +226,20 @@ mod tests {
         let result1 = Equation::parse_no_brackets(e1);
         let expected1 = Equation::Mul(Box::new(Equation::Value(4)), Box::new(Equation::Value(5)));
         assert_eq!(expected1, result1);
+        assert_eq!(result1.evaluate(), 20);
 
         let e2 = "3+4*5";
         let result2 = Equation::parse_no_brackets(e2);
-        let expected2 = Equation::Add(Box::new(Equation::Value(3)), Box::new(expected1.clone()));
+        let expected2 = Equation::Mul(
+            Box::new(Equation::Add(
+                Box::new(Equation::Value(3)),
+                Box::new(Equation::Value(4)),
+            )),
+            Box::new(Equation::Value(5)),
+        );
 
         assert_eq!(expected2, result2);
+        assert_eq!(result2.evaluate(), 35);
     }
 
     #[test]
@@ -210,7 +275,28 @@ mod tests {
         )));
         let expected = Equation::Add(Box::new(Equation::Value(3)), Box::new(right));
         assert_eq!(expected, result);
+        assert_eq!(result.evaluate(), 23);
     }
+
+    #[test]
+    fn parse_brackets_double_test() {
+        let e = "(3+4)*(4*5)";
+        let result = Equation::parse_brackets(e);
+        let left = Equation::BracketedEquation(Box::new(Equation::Add(
+            Box::new(Equation::Value(3)),
+            Box::new(Equation::Value(4)),
+        )));
+        let right = Equation::BracketedEquation(Box::new(Equation::Mul(
+            Box::new(Equation::Value(4)),
+            Box::new(Equation::Value(5)),
+        )));
+        let expected = Equation::Mul(Box::new(left), Box::new(right));
+        assert_eq!(expected, result);
+        assert_eq!(result.evaluate(), 140);
+    }
+
+    #[test]
+    fn eq_test1() {}
 
     #[test]
     fn part1_test() {
@@ -219,8 +305,11 @@ mod tests {
 5 * 9 * (7 * 3 * 3 + 9 * 3 + (8 + 6 * 4))
 ((2 + 4 * 9) * (6 + 9 * 8 + 6) + 6) + 2 + 4 * 2";
         let generated_input = input_generator(input);
+        println!("{:?}", generated_input);
         let result = part1(&generated_input);
         let expected = 26 + 437 + 12240 + 13632;
+        let equations: Vec<_> = generated_input.iter().map(Equation::evaluate).collect();
+        println!("{:?}", equations);
 
         assert_eq!(result, expected);
     }
