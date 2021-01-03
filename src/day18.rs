@@ -26,25 +26,11 @@ enum Equation {
     Value(usize),
 }
 
-fn consume_start(s: &str) -> (String, String, String) {
-    let l = s.chars().take_while(|&c| !is_symbol(c)).collect();
-    let symbol = s.chars().skip_while(|&c| !is_symbol(c)).take(1).collect();
-    let r = s.chars().skip_while(|&c| !is_symbol(c)).skip(1).collect();
-    (l, symbol, r)
-}
-
 fn consume_end(s: &str) -> (String, String, String) {
     let last_symbol_index = s.rfind(|c| is_symbol(c)).unwrap();
     let l = &s[0..last_symbol_index];
     let symbol = &s[last_symbol_index..last_symbol_index + 1];
     let r = &s[last_symbol_index + 1..];
-    (l.to_string(), symbol.to_string(), r.to_string())
-}
-
-fn consume_at(s: &str, index: usize) -> (String, String, String) {
-    let l = &s[0..index];
-    let symbol = &s[index..index + 1];
-    let r = &s[index + 1..];
     (l.to_string(), symbol.to_string(), r.to_string())
 }
 
@@ -215,16 +201,6 @@ mod tests {
     }
 
     #[test]
-    fn consume_start_test() {
-        let s = "3+4*5";
-        let result = consume_start(s);
-
-        assert_eq!(result.0, "3");
-        assert_eq!(result.1, "+");
-        assert_eq!(result.2, "4*5");
-    }
-
-    #[test]
     fn equation_evaluate_test2() {
         let input = r"2 * 3 + (4 * 5)
 5 + (8 * 3 + 9 + 3 * 4 * 3)
@@ -356,24 +332,5 @@ mod tests {
         let expected = Equation::Mul(Box::new(left), Box::new(right));
         assert_eq!(expected, result);
         assert_eq!(result.evaluate(), 140);
-    }
-
-    #[test]
-    fn eq_test1() {}
-
-    #[test]
-    fn part1_test() {
-        let input = r"2 * 3 + (4 * 5)
-5 + (8 * 3 + 9 + 3 * 4 * 3)
-5 * 9 * (7 * 3 * 3 + 9 * 3 + (8 + 6 * 4))
-((2 + 4 * 9) * (6 + 9 * 8 + 6) + 6) + 2 + 4 * 2";
-        let generated_input = input_generator(input);
-        println!("{:?}", generated_input);
-        let result = part1(&generated_input);
-        let expected = 26 + 437 + 12240 + 13632;
-        let equations: Vec<_> = generated_input.iter().map(Equation::evaluate).collect();
-        println!("{:?}", equations);
-
-        assert_eq!(result, expected);
     }
 }
