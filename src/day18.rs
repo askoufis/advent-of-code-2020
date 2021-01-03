@@ -106,18 +106,7 @@ impl Equation {
         let starts_with_bracket = s.starts_with('(');
         let ends_with_bracket = s.ends_with(')');
 
-        if starts_with_bracket && ends_with_bracket {
-            let (rest, bracket_part) = parse_bracket_end_count(s);
-            let bracket_equation = Equation::BracketedEquation(Box::new(Equation::parse(
-                &consume_brackets(&bracket_part),
-            )));
-            match rest {
-                Some((lhs, symbol)) => {
-                    Equation::new_add_mul(Equation::parse(&lhs), &symbol, bracket_equation)
-                }
-                None => bracket_equation,
-            }
-        } else if ends_with_bracket {
+        if (starts_with_bracket && ends_with_bracket) || ends_with_bracket {
             let (rest, bracket_part) = parse_bracket_end_count(s);
             let bracket_equation = Equation::BracketedEquation(Box::new(Equation::parse(
                 &consume_brackets(&bracket_part),

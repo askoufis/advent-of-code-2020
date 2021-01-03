@@ -63,7 +63,7 @@ fn part2(entries: &[Password]) -> usize {
             let a = lower_character == entry.required_character;
             let b = upper_character == entry.required_character;
 
-            (a && !b) || (!a && b)
+            a ^ b
         })
         .collect::<Vec<&Password>>();
 
